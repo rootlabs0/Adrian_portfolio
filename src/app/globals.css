@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+/* ── Tokens ───────────────────────────────────────── */
+:root {
+  --canvas: #141414;
+  --canvas-dark: #0c0c0c;
+  --canvas-light: #1e1e1e;
+  --surface: #414040;
+  --surface-light: #525151;
+  --accent: #a1c5ff;
+  --accent-green: #7fffd4;
+  --foreground: #ededed;
+  --foreground-muted: #ededed99;
+
+  --gradient-border: linear-gradient(135deg, var(--accent), var(--accent-green));
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-canvas-dark: var(--canvas-dark);
+  --color-canvas-light: var(--canvas-light);
+  --color-surface: var(--surface);
+  --color-surface-light: var(--surface-light);
+  --color-accent: var(--accent);
+  --color-accent-green: var(--accent-green);
+  --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-instrument);
+}
+
+/* ── Base ──────────────────────────────────────────── */
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--canvas);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* ── Gradient border (used sparingly) ──────────────── */
+.gradient-border { background: var(--gradient-border); }
+.gradient-border-inner { background: var(--surface); }
+
+/* ── Hairline ──────────────────────────────────────── */
+.rule {
+  height: 1px;
+  background: var(--foreground);
+  opacity: 0.08;
+}
+
+/* ── Scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 999px; }
+
+/* ── Selection ─────────────────────────────────────── */
+::selection { background: var(--accent); color: var(--canvas-dark); }
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Spinning border ───────────────────────────────── */
+@keyframes spin-border {
+  to { transform: rotate(360deg); }
+}
