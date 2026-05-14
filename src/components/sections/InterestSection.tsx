@@ -1,158 +1,189 @@
-"use client";
+﻿"use client";
 
-import { motion } from "motion/react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 
-const interests = [
-  {
-    label: "Nature & Hiking",
-    note: "Getting outdoors, exploring trails, and finding perspective away from screens.",
-    icon: "/Nature-icon.webp",
-    iconClass: "scale-[1.6]",
-  },
+/* â”€â”€ Data â”€â”€ */
+const items = [
   {
     label: "Creative Design",
+    tag: "Visual · Interface",
     note: "Visual storytelling, interface craft, and turning abstract ideas into tangible experiences.",
     icon: "/Creativity-icon.webp",
+    iconClass: "",
   },
   {
     label: "Electronics & Hardware",
-    note: "Building circuits, prototyping hardware, and making ideas physical.",
+    tag: "Engineering · Prototyping",
+    note: "Building circuits, soldering ESCs, prototyping boards, and making ideas physical. Every wire soldered is a lesson.",
     icon: "/led-icon.webp",
+    iconClass: "",
   },
   {
     label: "Fitness",
+    tag: "Discipline · Growth",
     note: "Discipline, consistency, and pushing limits. The same mindset that drives engineering.",
     icon: "/gym-icon.webp",
-    iconClass: "rotate-[-15deg] scale-90",
+    iconClass: "",
+  },
+  {
+    label: "Nature & Hiking",
+    tag: "Exploration · Perspective",
+    note: "Getting outdoors, exploring trails, and finding perspective away from screens.",
+    icon: "/Nature-icon.webp",
+    iconClass: "scale-125",
   },
 ];
 
 export default function InterestSection() {
+  const [active, setActive] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState<number | null>(0);
+
   return (
-    <section id="interests" className="py-28">
-      <div className="mx-auto max-w-5xl px-6">
-        <p className="font-mono text-[11px] tracking-[0.25em] uppercase text-foreground/30">
-          Interests & Skills
+    <section id="interests" className="py-24 sm:py-32 lg:py-40">
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true, margin: "-80px" }}
+        transition={{ duration: 0.8 }}
+        className="mx-auto w-full max-w-5xl px-6"
+      >
+        {/* Section label */}
+        <p data-fade-out className="mb-16 sm:mb-20 text-[11px] tracking-[0.25em] uppercase text-foreground/30" style={{ fontFamily: "var(--font-inter)" }}>
+          Interests &amp; Skills
         </p>
 
-        {/* ── Featured: Drone section ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-16 grid grid-cols-1 items-center gap-6 lg:grid-cols-2 lg:gap-8"
-        >
-          {/* Left - large drone image, tilted */}
-          <div className="flex justify-center">
-            <Image
-              src="/drone-icon.webp"
-              alt="Custom built FPV drone"
-              width={400}
-              height={400}
-              className="w-64 h-64 sm:w-80 sm:h-80 rounded-2xl object-cover rotate-[-28deg] drop-shadow-2xl"
-            />
-          </div>
+        {/* â”€â”€ DESKTOP: Editorial two-column layout â”€â”€ */}
+        <div className="hidden sm:grid grid-cols-2 gap-16 lg:gap-24 items-start">
 
-          {/* Right - explainer */}
-          <div>
-            <h3 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Custom FPV Drone
-            </h3>
-            <p className="mt-1 font-mono text-[10px] tracking-[0.12em] uppercase text-foreground/25">
-              Engineering &middot; FPV Flight
-            </p>
-            <p className="mt-6 text-base leading-[1.8] text-foreground/50">
-              Built from the frame up - custom soldered ESCs, tuned flight
-              controllers, and hand-picked components for maximum performance.
-              FPV flying is where software precision meets physical
-              engineering. Every build is a lesson in systems integration,
-              weight optimization, and real-time control theory.
-            </p>
-          </div>
-        </motion.div>
-
-        {/* ── Grid: remaining interests ── */}
-        <div className="mt-24 relative grid grid-cols-2 gap-x-6 gap-y-10 sm:gap-x-10 sm:gap-y-14 lg:grid-cols-[1fr_auto_1fr] lg:gap-x-36 lg:gap-y-20 lg:items-center">
-          {/* Left column - first 2 items */}
-          <div className="col-span-2 sm:col-span-1 lg:col-span-1 flex flex-col gap-18">
-            {interests.slice(0, 2).map((item, i) => (
-              <motion.div
+          {/* Left: numbered list */}
+          <div className="flex flex-col divide-y divide-foreground/[0.06]">
+            {items.map((item, i) => (
+              <button
                 key={item.label}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: "-30px" }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="flex items-start gap-4"
+                onClick={() => setActive(i)}
+                onMouseEnter={() => setActive(i)}
+                className="group flex items-center gap-6 py-7 text-left"
               >
-                <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
-                  <Image
-                    src={item.icon}
-                    alt={item.label}
-                    width={80}
-                    height={80}
-                    className={`object-contain max-w-full max-h-full ${
-                      (item as { iconClass?: string }).iconClass ?? ""
-                    }`}
-                  />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold tracking-tight">{item.label}</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-foreground/40">
-                    {item.note}
-                  </p>
-                </div>
-              </motion.div>
+                <span className="w-7 font-mono text-[11px] tracking-[0.2em] text-foreground/20 flex-shrink-0 group-hover:text-foreground/40 transition-colors">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+
+                <motion.div
+                  className="h-px bg-foreground/30 flex-shrink-0"
+                  animate={{ width: active === i ? 20 : 0, opacity: active === i ? 1 : 0 }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                />
+
+                <motion.span
+                  animate={{ color: active === i ? "rgba(237,237,237,1)" : "rgba(237,237,237,0.25)" }}
+                  transition={{ duration: 0.3 }}
+                  className="text-xl lg:text-2xl font-bold tracking-tight"
+                >
+                  {item.label}
+                </motion.span>
+              </button>
             ))}
           </div>
 
-          {/* Center - "Adrian." branding element */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="hidden lg:flex flex-col items-center justify-center"
-          >
-            <span className="text-4xl font-bold tracking-tight">
-              Adrian<span className="text-accent">.</span>
-            </span>
-          </motion.div>
-
-          {/* Right column - last 2 items */}
-          <div className="col-span-2 sm:col-span-1 lg:col-span-1 flex flex-col gap-18">
-            {interests.slice(2, 4).map((item, i) => (
+          {/* Right: spotlight panel */}
+          <div className="sticky top-1/3">
+            <AnimatePresence mode="wait">
               <motion.div
-                key={item.label}
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: "-30px" }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="flex items-start gap-4"
+                key={active}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -14 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="rounded-3xl border border-foreground/[0.08] bg-canvas-light p-10"
               >
-                <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+                <div className="w-20 h-20 rounded-2xl bg-canvas flex items-center justify-center mb-8">
                   <Image
-                    src={item.icon}
-                    alt={item.label}
-                    width={80}
-                    height={80}
-                    className={`object-contain max-w-full max-h-full ${
-                      (item as { iconClass?: string }).iconClass ?? ""
-                    }`}
+                    src={items[active].icon}
+                    alt={items[active].label}
+                    width={52}
+                    height={52}
+                    className={`object-contain w-14 h-14 ${items[active].iconClass}`}
                   />
                 </div>
-                <div>
-                  <h3 className="text-sm font-semibold tracking-tight">{item.label}</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-foreground/40">
-                    {item.note}
-                  </p>
-                </div>
+                <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/30 mb-3">
+                  {items[active].tag}
+                </p>
+                <h3 className="text-3xl font-bold tracking-tight mb-5">
+                  {items[active].label}
+                </h3>
+                <p className="text-base leading-[1.85] text-foreground/50">
+                  {items[active].note}
+                </p>
               </motion.div>
-            ))}
+            </AnimatePresence>
           </div>
         </div>
-      </div>
+
+        {/* â”€â”€ MOBILE: Accordion â”€â”€ */}
+        <div className="flex flex-col sm:hidden divide-y divide-foreground/[0.06]">
+          {items.map((item, i) => {
+            const isOpen = mobileOpen === i;
+            return (
+              <div key={item.label}>
+                <button
+                  onClick={() => setMobileOpen(isOpen ? null : i)}
+                  className="w-full flex items-center justify-between py-6 text-left"
+                >
+                  <div className="flex items-center gap-5">
+                    <span className="font-mono text-[10px] tracking-[0.2em] text-foreground/20 w-6 flex-shrink-0">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className={`text-xl font-bold tracking-tight transition-colors ${isOpen ? "text-foreground" : "text-foreground/40"}`}>
+                      {item.label}
+                    </span>
+                  </div>
+                  <motion.span
+                    animate={{ rotate: isOpen ? 45 : 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="text-foreground/30 text-2xl leading-none flex-shrink-0 ml-4 font-light"
+                  >
+                    +
+                  </motion.span>
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pb-7 flex gap-5 items-start">
+                        <div className="rounded-xl bg-canvas border border-foreground/[0.07] p-4 flex-shrink-0">
+                          <Image
+                            src={item.icon}
+                            alt={item.label}
+                            width={40}
+                            height={40}
+                            className={`object-contain w-10 h-10 ${item.iconClass}`}
+                          />
+                        </div>
+                        <div>
+                          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/30 mb-2">
+                            {item.tag}
+                          </p>
+                          <p className="text-sm leading-[1.85] text-foreground/50">
+                            {item.note}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+      </motion.div>
     </section>
   );
 }

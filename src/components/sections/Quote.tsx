@@ -25,7 +25,7 @@ export default function Quote() {
         </blockquote>
 
         <p className="mt-10 font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/25">
-          The philosophy behind everything I build
+          Shape the future, don't just predict it
         </p>
       </motion.div>
     </section>
@@ -33,8 +33,8 @@ export default function Quote() {
 }
 
 const SEGMENTS = [
-  { text: "Creativity is intelligence ", style: "text" },
-  { text: "having fun", style: "accent" },
+  { text: "The best way to predict the future is to ", style: "text" },
+  { text: "create it", style: "accent" },
   { text: ".", style: "text" },
 ] as const;
 

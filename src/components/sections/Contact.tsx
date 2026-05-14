@@ -12,7 +12,7 @@ export default function Contact() {
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="font-mono text-[11px] tracking-[0.25em] uppercase text-foreground/30">
+          <p data-fade-out className="font-mono text-[11px] tracking-[0.25em] uppercase text-foreground/30">
             Contact
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">

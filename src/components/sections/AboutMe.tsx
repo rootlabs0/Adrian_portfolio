@@ -1,291 +1,398 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
-import Image from "next/image";
-import { motion, useScroll, useTransform } from "motion/react";
+import { useEffect, useMemo, useRef } from "react";
+import dynamic from "next/dynamic";
+import { motion, useScroll, useTransform, type MotionValue } from "motion/react";
 
-/* ── logos for the 16y bubble carousel ── */
-const projectBubbles = [
-  { src: "/Rootlabs-logo-xbg.webp", alt: "Root Labs", imgSize: 52, bg: "bg-white" },
-  { src: "/favicon-circle.webp", alt: "TeamsterX", imgSize: 52, bg: "bg-white" },
-  { src: "/HackME-logo.webp", alt: "HackME", imgSize: 36, bg: "bg-[#1a1a1a]" },
-  { src: "/Lomnice.webp", alt: "Lomnice", imgSize: 28, bg: "bg-white" },
-  { src: null, alt: "?", imgSize: 0, bg: "bg-white" },
+const Hyperspeed = dynamic(() => import("@/components/ui/Hyperspeed"), { ssr: false });
+
+const SLIDES = [
+  {
+    age: "13",
+    heading: "First website",
+    body: "HTML, CSS, and a dream. A static site I hand-built from scratch, my first real shipped project.",
+  },
+  {
+    age: "14",
+    heading: "Built my first drone",
+    body: "Soldered, wired, and crashed an FPV quad. Hardware became as natural as code.",
+  },
+  {
+    age: "15",
+    heading: "Founded Root Labs",
+    body: "A product studio shipping tools that solve real problems. Designed, built, and sold.",
+  },
+  {
+    age: "16",
+    heading: "9+ projects shipped",
+    body: "Web, hardware, infra. Each one harder than the last. Still going.",
+  },
 ];
 
+const HEIGHT_VH = 1200;
+
+// Shared layout constants — used by both Slide animations and snap logic
+const INTRO_SLOT = 1 / (SLIDES.length + 1); // 0.20
+const SLIDE_SPACING = 0.22; // progress gap between slide starts
+const SLIDE_WINDOW = 0.25;  // must be < SLIDE_SPACING / 0.67 so readable zones never overlap
+const SLIDE_FADE = 0.05;    // fade in/out duration
+
 export default function AboutMe() {
-  const timelineRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  // Use "end center" to extend tracking window - progress reaches 1 when section bottom is at viewport center
+  // This gives slides more scroll room to animate to full visibility
   const { scrollYProgress } = useScroll({
-    target: timelineRef,
-    offset: ["start 0.5", "end 0.5"],
+    target: wrapperRef,
+    offset: ["start start", "end center"],
   });
-  const fillHeight = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+
+  // Snap to the most-readable progress point for each text element
+  // Calculate dynamically to account for end clamping (especially on last slide)
+  const snapPoints = useMemo(() => {
+    const points = [];
+    
+    // Intro title readable zone
+    const introReadableStart = INTRO_SLOT * 0.15;
+    const introReadableEnd = INTRO_SLOT * 0.82;
+    points.push((introReadableStart + introReadableEnd) / 2);
+    
+    // Slides readable zones
+    SLIDES.forEach((_, i) => {
+      const start = INTRO_SLOT + i * SLIDE_SPACING;
+      const end = Math.min(1, start + SLIDE_WINDOW);
+      const readableStart = start + SLIDE_WINDOW * 0.15;
+      const readableEnd = end - SLIDE_WINDOW * 0.18;
+      points.push((readableStart + readableEnd) / 2);
+    });
+    
+    return points;
+  }, []);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    let timer: ReturnType<typeof setTimeout>;
+    let isSnapping = false;
+    let lastScrollY = window.scrollY;
+    let scrollDir = 1; // 1 = forward, -1 = backward
+
+    const handleScroll = () => {
+      const newY = window.scrollY;
+      if (newY !== lastScrollY) scrollDir = newY > lastScrollY ? 1 : -1;
+      lastScrollY = newY;
+
+      if (isSnapping) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const wrapperTop = wrapper.getBoundingClientRect().top + window.scrollY;
+        // Matches offset ["start start", "end center"]
+        const scrollRange = wrapper.offsetHeight - window.innerHeight / 2;
+        const cur = (window.scrollY - wrapperTop) / scrollRange;
+        if (cur < 0 || cur > 1) return;
+
+        // Only consider snap points in the direction we were scrolling
+        // A small 0.03 overlap lets us snap to the point we just barely passed
+        const candidates = scrollDir >= 0
+          ? snapPoints.filter(p => p >= cur - 0.03)
+          : snapPoints.filter(p => p <= cur + 0.03);
+        if (candidates.length === 0) return;
+
+        const nearest = candidates.reduce((a, b) =>
+          Math.abs(b - cur) < Math.abs(a - cur) ? b : a
+        );
+        if (Math.abs(nearest - cur) < 0.02) return; // already close enough
+
+        isSnapping = true;
+        window.scrollTo({ top: wrapperTop + nearest * scrollRange, behavior: "smooth" });
+        setTimeout(() => { isSnapping = false; }, 1200);
+      }, 300); // longer debounce = waits for user to truly stop
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      clearTimeout(timer);
+    };
+  }, [snapPoints]);
+
+  const hyperspeedOptions = useMemo(
+    () => ({
+      distortion: "turbulentDistortion",
+      length: 400,
+      roadWidth: 10,
+      islandWidth: 2,
+      lanesPerRoad: 4,
+      fov: 90,
+      fovSpeedUp: 150,
+      speedUp: 2,
+      carLightsFade: 0.4,
+      totalSideLightSticks: 20,
+      lightPairsPerRoadWay: 40,
+      shoulderLinesWidthPercentage: 0.05,
+      brokenLinesWidthPercentage: 0.1,
+      brokenLinesLengthPercentage: 0.5,
+      lightStickWidth: [0.12, 0.5],
+      lightStickHeight: [1.3, 1.7],
+      movingAwaySpeed: [60, 80],
+      movingCloserSpeed: [-120, -160],
+      carLightsLength: [400 * 0.03, 400 * 0.2],
+      carLightsRadius: [0.05, 0.14],
+      carWidthPercentage: [0.3, 0.5],
+      carShiftX: [-0.8, 0.8],
+      carFloorSeparation: [0, 5],
+      colors: {
+        roadColor: 0x080808,
+        islandColor: 0x0a0a0a,
+        background: 0x000000,
+        shoulderLines: 0xffffff,
+        brokenLines: 0xffffff,
+        leftCars: [0xa1c5ff, 0x6f8cc4, 0xffffff],
+        rightCars: [0xffffff, 0xcccccc, 0xa1c5ff],
+        sticks: 0xa1c5ff,
+      },
+    }),
+    []
+  );
 
   return (
-    <section id="about" className="relative py-32 overflow-x-hidden">
-      <div className="mx-auto max-w-5xl px-6">
-        {/* Heading */}
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-5xl font-extrabold tracking-tight sm:text-6xl"
-        >
-          Adrian<span className="text-accent">.</span>
-        </motion.h2>
-
-        {/* Body text */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="mt-10 max-w-2xl"
-        >
-          <p className="text-lg leading-[1.75] text-foreground/55">
-            Whether it&apos;s a product lab, a cybersecurity platform, or
-            a collaborative tool, I operate on the same principle: clarity
-            in design, speed in execution, quality in output. Root Labs is
-            where that philosophy lives.
-          </p>
-          <p className="mt-5 text-lg leading-[1.75] text-foreground/55">
-            Physical engineering is a complementary discipline. My core
-            focus is building end-to-end digital products that solve real
-            problems for real users. Move fast, build things that work.
-          </p>
-        </motion.div>
-
-        {/* ── Centered Vertical Timeline ── */}
-        <div ref={timelineRef} className="relative mx-auto mt-28 max-w-4xl">
-          {/*
-            The first row has pt-0 → its dot is at the very top.
-            The last row has pb-0  → its dot is at the very bottom.
-            We position the track line from the first dot center to the last dot center.
-            Dot is h-8 (2rem) → center = 1rem from its top edge.
-            First dot top = 0 (pt-0) + centering via items-center → dot center ≈ row midpoint.
-            But since we removed padding on first/last, the dot IS the edge.
-            So we just match the line to the dot centers exactly.
-          */}
-
-          {/* The track + fill are inside a wrapper that spans the full timeline height
-              but we clip them via the dot positions using a simple approach:
-              the line spans the full height of the container, and the dots (z-10)
-              visually cap both ends. */}
-
-          {/* Track (dim) */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[3px] rounded-full bg-foreground/10" />
-          {/* Fill (accent, scroll-driven) */}
-          <motion.div
-            className="absolute left-1/2 -translate-x-1/2 top-0 w-[3px] rounded-full bg-accent origin-top"
-            style={{ height: fillHeight }}
-          />
-
-          {/* ── 13y ── */}
-          <TimelineRow index={0} first>
-            <div className="text-right max-sm:text-left">
-              <span className="font-mono text-sm sm:text-base tracking-widest uppercase" style={{ color: 'rgba(237,237,237,0.65)' }}>
-                13y
-              </span>
-              <p className="mt-1 text-2xl sm:text-4xl font-bold leading-snug text-foreground/85">
-                First <span className="text-accent font-bold">website</span>
-              </p>
-              <p className="mt-2 text-sm sm:text-base max-w-xs text-right max-sm:text-left max-sm:ml-0 max-sm:max-w-none ml-auto" style={{ color: 'rgba(237,237,237,0.7)' }}>
-                HTML, CSS and a dream. My first real project - a static site
-                built from scratch.
-              </p>
-            </div>
-            <div className="text-left">
-              <p className="text-2xl sm:text-4xl font-semibold text-foreground/12">(It sucked)</p>
-            </div>
-          </TimelineRow>
-
-          {/* ── 14y ── */}
-          <TimelineRow index={1}>
-            <div className="flex justify-end max-sm:justify-start">
-              <Image
-                src="/Pliers-icon.png"
-                alt="Pliers"
-                width={480}
-                height={480}
-                className="object-contain w-24 sm:w-60 lg:w-[480px]"
-              />
-            </div>
-            <div className="text-left">
-              <span className="font-mono text-sm sm:text-base tracking-widest uppercase" style={{ color: 'rgba(237,237,237,0.65)' }}>
-                14y
-              </span>
-              <p className="mt-1 text-2xl sm:text-4xl font-bold leading-snug text-foreground/85">
-                Built my first{" "}
-                <span className="text-accent font-bold">drone</span>
-              </p>
-              <p className="mt-2 text-sm sm:text-base max-w-xs" style={{ color: 'rgba(237,237,237,0.7)' }}>
-                Soldering, wiring, crashing - repeat. Hand-built FPV quad
-                from raw components.
-              </p>
-            </div>
-          </TimelineRow>
-
-          {/* ── 15y ── */}
-          <TimelineRow index={2}>
-            <div className="text-right max-sm:text-left">
-              <span className="font-mono text-sm sm:text-base tracking-widest uppercase" style={{ color: 'rgba(237,237,237,0.65)' }}>
-                15y
-              </span>
-              <p className="mt-1 text-2xl sm:text-4xl font-bold leading-snug text-foreground/85">
-                Founded{" "}
-                <span className="text-accent font-bold">Root Labs</span>
-              </p>
-              <p className="mt-2 text-sm sm:text-base max-w-xs text-right max-sm:text-left max-sm:ml-0 max-sm:max-w-none ml-auto" style={{ color: 'rgba(237,237,237,0.7)' }}>
-                A product studio focused on building tools that solve real
-                problems - fast.
-              </p>
-            </div>
-            <div className="flex justify-start items-center">
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="h-12 w-12 sm:h-16 sm:w-16 shrink-0 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-lg">
-                  <Image
-                    src="/rootlabs-favicon.webp"
-                    alt="Root Labs"
-                    width={48}
-                    height={48}
-                    className="object-contain w-8 sm:w-11"
-                  />
-                </div>
-                <div>
-                  <p className="text-lg sm:text-xl font-bold text-foreground/85 leading-tight">Root Labs</p>
-                  <p className="text-xs sm:text-sm font-mono tracking-wide" style={{ color: 'rgba(237,237,237,0.45)' }}>est. 2025</p>
-                </div>
-              </div>
-            </div>
-          </TimelineRow>
-
-          {/* ── 16y ── */}
-          <TimelineRow index={3} last>
-            {/* Bubble carousel */}
-            <div className="flex justify-end max-sm:justify-start">
-              <BubbleCarousel />
-            </div>
-            <div className="text-left">
-              <span className="font-mono text-sm sm:text-base tracking-widest uppercase" style={{ color: 'rgba(237,237,237,0.65)' }}>
-                16y
-              </span>
-              <p className="mt-1 text-2xl sm:text-4xl font-bold leading-snug text-foreground/85">
-                <span className="text-accent font-bold">9+ Projects</span>{" "}
-                completed
-              </p>
-            </div>
-          </TimelineRow>
+    <section id="about" ref={wrapperRef} style={{ position: "relative", height: `${HEIGHT_VH}vh` }}>
+      {/* Sticky viewport — pins while user scrolls through slide range */}
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          height: "100vh",
+          width: "100%",
+          overflow: "hidden",
+          background: "#000",
+        }}
+      >
+        {/* Hyperspeed canvas */}
+        <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+          <Hyperspeed effectOptions={hyperspeedOptions} />
         </div>
+
+        {/* Dim overlay for text legibility */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 1,
+            background:
+              "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.7) 100%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Section intro title */}
+        <IntroTitle progress={scrollYProgress} />
+
+        {/* Slides */}
+        {SLIDES.map((slide, i) => (
+          <Slide key={slide.age} index={i} total={SLIDES.length} progress={scrollYProgress} slide={slide} />
+        ))}
+
+        {/* Progress dots */}
+        <ProgressDots progress={scrollYProgress} total={SLIDES.length} />
       </div>
     </section>
   );
 }
 
-/* ─────────────────────────────────────────────────────────── */
-/* BubbleCarousel - flat horizontal, center-scaled             */
-/* ─────────────────────────────────────────────────────────── */
-function BubbleCarousel() {
-  const count = projectBubbles.length;
-  const [offset, setOffset] = useState(0);
-  const containerW = 288; // sm:w-72 = 288px
-  const half = containerW / 2;
+function IntroTitle({ progress }: { progress: MotionValue<number> }) {
+  // Visible 0 → ~0.18 of total scroll, fades out before slide 1 starts at 0.20
+  // Same nonlinear easing as slides: slow in readable zone, fast exit
+  const scale = useTransform(
+    progress,
+    [0, INTRO_SLOT * 0.15, INTRO_SLOT * 0.82, INTRO_SLOT],
+    [0.25, 0.85, 1.5, 8]
+  );
+  const opacity = useTransform(progress, [0, SLIDE_FADE, INTRO_SLOT - SLIDE_FADE, INTRO_SLOT], [0, 1, 1, 0]);
+  return (
+    <motion.div
+      style={{
+        opacity,
+        scale,
+        position: "absolute",
+        inset: 0,
+        zIndex: 2,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        pointerEvents: "none",
+        padding: "0 1.5rem",
+        transformOrigin: "center center",
+        willChange: "transform, opacity",
+      }}
+    >
+      <p
+        style={{
+          fontFamily: "var(--font-mono, ui-monospace)",
+          fontSize: "0.85rem",
+          letterSpacing: "0.3em",
+          textTransform: "uppercase",
+          color: "var(--accent, #a1c5ff)",
+          marginBottom: "1.25rem",
+        }}
+      >
+        Sixteen years
+      </p>
+      <h2
+        style={{
+          color: "#fff",
+          fontSize: "clamp(2.5rem, 7vw, 5.5rem)",
+          fontWeight: 800,
+          lineHeight: 1.05,
+          letterSpacing: "-0.03em",
+          margin: 0,
+        }}
+      >
+        The journey<br />so far
+      </h2>
 
-  useEffect(() => {
-    let raf: number;
-    let start: number | null = null;
-    const speed = 0.03;
-    const step = (ts: number) => {
-      if (start === null) start = ts;
-      setOffset((ts - start) * speed);
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, []);
+    </motion.div>
+  );
+}
 
-  const gap = 64;
-  const totalWidth = count * gap;
+function Slide({
+  index,
+  total,
+  progress,
+  slide,
+}: {
+  index: number;
+  total: number;
+  progress: MotionValue<number>;
+  slide: (typeof SLIDES)[number];
+}) {
+  const start = INTRO_SLOT + index * SLIDE_SPACING;
+  const end = Math.min(1, start + SLIDE_WINDOW);
+
+  // Nonlinear scale: fast approach, SLOW readable zone, fast exit past camera
+  const scale = useTransform(
+    progress,
+    [
+      start,
+      start + SLIDE_WINDOW * 0.15, // approach ends — text now readable
+      end   - SLIDE_WINDOW * 0.18, // readable zone ends — exit begins
+      end,
+    ],
+    [0.25, 0.85, 1.5, 8]
+  );
+
+  const opacity = useTransform(
+    progress,
+    [start, start + SLIDE_FADE, end - SLIDE_FADE, end],
+    [0, 1, 1, 0]
+  );
+  const isLeft = index % 2 === 0;
 
   return (
-    <div className="relative flex items-center justify-center h-24 w-56 sm:h-28 sm:w-72 overflow-hidden">
-      {/* Fade edges */}
-      <div className="absolute inset-y-0 left-0 w-10 z-10 bg-gradient-to-r from-base to-transparent pointer-events-none" />
-      <div className="absolute inset-y-0 right-0 w-10 z-10 bg-gradient-to-l from-base to-transparent pointer-events-none" />
-      {projectBubbles.map((b, i) => {
-        const rawX = (i * gap - offset % totalWidth + totalWidth) % totalWidth;
-        const x = rawX - totalWidth / 2 + gap / 2;
-        // Distance from center (0 = center, 1 = edge)
-        const dist = Math.min(Math.abs(x) / half, 1);
-        const scale = 1 - dist * 0.45; // 1.0 center → 0.55 edge
-        const opacity = 1 - dist * 0.6; // 1.0 center → 0.4 edge
-
-        return (
-          <div
-            key={b.alt}
-            className={`absolute rounded-full ${b.bg} flex items-center justify-center overflow-hidden shadow-md`}
-            style={{
-              width: 56,
-              height: 56,
-              left: "50%",
-              transform: `translateX(${x - 28}px) scale(${scale})`,
-              opacity,
-            }}
-          >
-            {b.src ? (
-              <Image
-                src={b.src}
-                alt={b.alt}
-                width={b.imgSize}
-                height={b.imgSize}
-                className="object-contain"
-              />
-            ) : (
-              <span className="text-xs font-bold text-foreground/30">?</span>
-            )}
-          </div>
-        );
-      })}
+    // Outer div: handles positioning/centering only
+    <div
+      style={{
+        position: "absolute",
+        top: "50%",
+        [isLeft ? "left" : "right"]: "clamp(1.5rem, 6vw, 5rem)",
+        transform: "translateY(-50%)",
+        zIndex: 2,
+        maxWidth: "min(40vw, 480px)",
+        textAlign: isLeft ? "left" : "right",
+        pointerEvents: "none",
+      }}
+    >
+      {/* Inner motion div: scale + blur + opacity — simulates driving past */}
+      <motion.div
+        style={{
+          opacity,
+          scale,
+          transformOrigin: "center center",
+          willChange: "transform, opacity",
+        }}
+      >
+        <div
+          style={{
+            display: "inline-block",
+            fontFamily: "var(--font-mono, ui-monospace)",
+            fontSize: "0.8rem",
+            letterSpacing: "0.3em",
+            textTransform: "uppercase",
+            color: "var(--accent, #a1c5ff)",
+            marginBottom: "0.75rem",
+          }}
+        >
+          Age {slide.age}
+        </div>
+        <h3
+          style={{
+            color: "#fff",
+            fontSize: "clamp(2rem, 4.5vw, 3.75rem)",
+            fontWeight: 800,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.1,
+            margin: 0,
+          }}
+        >
+          {slide.heading}
+        </h3>
+        <p
+          style={{
+            marginTop: "1rem",
+            color: "rgba(255,255,255,0.7)",
+            fontSize: "clamp(1rem, 1.3vw, 1.15rem)",
+            lineHeight: 1.55,
+          }}
+        >
+          {slide.body}
+        </p>
+      </motion.div>
     </div>
   );
 }
 
-/* ─────────────────────────────────────────────────────────── */
-/* TimelineRow                                                 */
-/* ─────────────────────────────────────────────────────────── */
-function TimelineRow({
-  children,
-  index,
-  first,
-  last,
-}: {
-  children: [React.ReactNode, React.ReactNode];
-  index: number;
-  first?: boolean;
-  last?: boolean;
-}) {
+function ProgressDots({ progress, total }: { progress: MotionValue<number>; total: number }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.5, delay: index * 0.08 }}
-      className={`relative z-[1] grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-10 ${first ? "pt-0" : "pt-20 sm:pt-40"} ${last ? "pb-0" : "pb-20 sm:pb-40"}`}
+    <div
+      style={{
+        position: "absolute",
+        bottom: "2.5rem",
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 3,
+        display: "flex",
+        gap: "0.6rem",
+        pointerEvents: "none",
+      }}
     >
-      {/* Left */}
-      <div className="relative z-[1] pr-2 sm:pr-4">{children[0]}</div>
+      {Array.from({ length: total }).map((_, i) => (
+        <Dot key={i} index={i} total={total} progress={progress} />
+      ))}
+    </div>
+  );
+}
 
-      {/* Dot */}
-      <motion.div
-        initial={{ scale: 0 }}
-        whileInView={{ scale: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.4, delay: 0.12 + index * 0.1, ease: "backOut" }}
-        className="relative z-10 h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-accent"
-      />
-
-      {/* Right */}
-      <div className="relative z-[1] pl-2 sm:pl-4">{children[1]}</div>
-    </motion.div>
+function Dot({ index, total, progress }: { index: number; total: number; progress: MotionValue<number> }) {
+  const slot = 1 / (total + 1);
+  const start = slot * (index + 1);
+  const end = start + slot;
+  const p0 = Math.max(0, start - slot * 0.5);
+  const p3 = Math.min(1, end + slot * 0.3);
+  const opacity = useTransform(progress, [p0, start, end, p3], [0.25, 1, 1, 0.25]);
+  const scale = useTransform(progress, [p0, start, end, p3], [1, 1.4, 1.4, 1]);
+  return (
+    <motion.span
+      style={{
+        opacity,
+        scale,
+        width: "6px",
+        height: "6px",
+        borderRadius: "9999px",
+        background: "var(--accent, #a1c5ff)",
+        display: "block",
+      }}
+    />
   );
 }

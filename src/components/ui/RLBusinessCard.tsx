@@ -466,7 +466,7 @@ export default function RLBusinessCard() {
                         Root Labs
                       </h3>
                       <p className="mt-0.5 font-mono text-[10px] tracking-[0.12em] uppercase text-gray-400">
-                        Co-Founder &middot; Systems Architect
+                        CEO &middot; Co-Founder &middot; Systems Architect
                       </p>
                     </div>
                   </div>
@@ -478,8 +478,8 @@ export default function RLBusinessCard() {
                         <Image
                           src="/Adrian_avatar.png"
                           alt="Adrian Edwards"
-                          width={256}
-                          height={320}
+                          width={800}
+                          height={1200}
                           className="h-full w-full object-cover object-top"
                         />
                       </div>
@@ -508,8 +508,8 @@ export default function RLBusinessCard() {
                       <Image
                         src="/Adrian_avatar.png"
                         alt="Adrian Edwards"
-                        width={400}
-                        height={520}
+                        width={850}
+                        height={1200}
                         className="h-full w-full object-cover object-top"
                       />
                     </div>

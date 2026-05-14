@@ -2,9 +2,9 @@
 
 /* ── Tokens ───────────────────────────────────────── */
 :root {
-  --canvas: #141414;
-  --canvas-dark: #0c0c0c;
-  --canvas-light: #1e1e1e;
+  --canvas: #0a0a0a;
+  --canvas-dark: #050505;
+  --canvas-light: #151515;
   --surface: #414040;
   --surface-light: #525151;
   --accent: #a1c5ff;
@@ -26,7 +26,7 @@
   --color-foreground: var(--foreground);
   --color-foreground-muted: var(--foreground-muted);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-inter);
   --font-display: var(--font-instrument);
 }
 
@@ -34,10 +34,10 @@
 html { scroll-behavior: smooth; }
 
 body {
-  background: var(--canvas);
+  background: #000000;
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ── Gradient border (used sparingly) ──────────────── */
@@ -67,4 +67,103 @@ body {
 /* ── Spinning border ───────────────────────────────── */
 @keyframes spin-border {
   to { transform: rotate(360deg); }
+}
+
+/* ── Hyperspeed Field Section ──────────────────────── */
+.field-wrapper {
+  height: 600vh;
+  position: relative;
+}
+.field-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  background: #050505;
+}
+.field-hyperspeed {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.field-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.55),
+    rgba(0, 0, 0, 0.25),
+    rgba(0, 0, 0, 0.65)
+  );
+}
+.field-heading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  color: #ffffff;
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 800;
+  line-height: 1.05;
+  text-align: center;
+  pointer-events: none;
+  padding: 0 2rem;
+  letter-spacing: -0.03em;
+  will-change: transform, opacity;
+}
+.field-text {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  will-change: transform, opacity;
+  max-width: min(42vw, 480px);
+  top: 50%;
+  margin-top: -90px;
+}
+.field-text--bl { left: 6vw; text-align: left; }
+.field-text--tr { right: 6vw; text-align: left; }
+.field-text--br { left: 6vw; text-align: left; }
+.field-text__age {
+  display: inline-block;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+.field-text__heading {
+  color: #ffffff;
+  font-size: clamp(2rem, 4.5vw, 4rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.25rem;
+}
+.field-text__body {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+  font-weight: 300;
+  line-height: 1.7;
+  max-width: 52ch;
+}
+@media (max-width: 768px) {
+  .field-text {
+    max-width: 80vw;
+    text-align: left !important;
+  }
+  .field-text--bl,
+  .field-text--br,
+  .field-text--tr {
+    left: 5vw;
+    right: auto;
+    top: 50%;
+    margin-top: -80px;
+  }
+  .field-text__heading { font-size: clamp(1.75rem, 9vw, 2.5rem); }
+  .field-text__body { font-size: 1rem; }
 }

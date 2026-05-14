@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import PillButton from "@/components/ui/PillButton";
+import RippleGrid from "@/components/ui/RippleGrid";
 import { useMouseParallax } from "@/hooks/useMouseParallax";
 import Image from "next/image";
 import { useMemo } from "react";
@@ -39,13 +40,127 @@ function blobPath(
   return d + "Z";
 }
 
+/* Deterministic pseudo-random */
+function seeded(seed: number): number {
+  const n = Math.sin(seed * 127.1) * 43758.5453;
+  return n - Math.floor(n);
+}
+
+/* ── Pixel Chunk Reveal Overlay ── */
+function PixelReveal() {
+  const cols = 10;
+  const rows = 7;
+  const cells = useMemo(() => {
+    const arr: { key: string; delay: number }[] = [];
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        arr.push({
+          key: `${r}-${c}`,
+          delay: seeded(r * 311.7 + c * 127.1) * 0.65 + 0.05,
+        });
+    return arr;
+  }, []);
+
+  return (
+    <div
+      className="absolute inset-0 z-40 grid pointer-events-none"
+      style={{
+        gridTemplateColumns: `repeat(${cols}, 1fr)`,
+        gridTemplateRows: `repeat(${rows}, 1fr)`,
+      }}
+    >
+      {cells.map(({ key, delay }) => (
+        <motion.div
+          key={key}
+          className="bg-canvas"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 0.3, delay, ease: "easeOut" }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ── Floating Pixel Squares ── */
+function FloatingPixels() {
+  const pixels = useMemo(
+    () =>
+      Array.from({ length: 14 }, (_, i) => {
+        const angle = seeded(i * 73 + 11) * Math.PI * 2;
+        const dist = 100 + seeded(i * 37 + 23) * 60;
+        return {
+          left: `calc(50% + ${Math.round(Math.cos(angle) * dist)}px)`,
+          top: `calc(50% + ${Math.round(Math.sin(angle) * dist)}px)`,
+          size: 3 + Math.round(seeded(i * 19 + 7) * 7),
+          dur: 3 + seeded(i * 41 + 3) * 4,
+          del: seeded(i * 53 + 17) * 4,
+          color:
+            i % 3 === 0
+              ? "var(--accent)"
+              : i % 3 === 1
+                ? "var(--accent-green)"
+                : "rgba(237,237,237,0.15)",
+        };
+      }),
+    [],
+  );
+
+  return (
+    <div className="absolute inset-0 z-[5] pointer-events-none">
+      {pixels.map((p, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-[2px]"
+          style={{
+            left: p.left,
+            top: p.top,
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+          }}
+          animate={{
+            y: [0, -12, 0],
+            opacity: [0.2, 0.5, 0.2],
+          }}
+          transition={{
+            duration: p.dur,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: p.del,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function Hero() {
   const mouse = useMouseParallax();
   const circle = useMemo(() => blobPath(190, 190, 170, 0, 0, 64), []);
-  const wavy = useMemo(() => blobPath(190, 190, 170, 8, 12, 64), []);
+  const wavy = useMemo(() => blobPath(190, 190, 170, 8, 12, 64), []); 
 
   return (
     <section className="relative min-h-screen overflow-hidden">
+      {/* Pixel chunk reveal overlay */}
+      <PixelReveal />
+
+      {/* Ripple grid background effect */}
+      <div className="absolute inset-0 z-0">
+        <RippleGrid
+          gridColor="#a1c5ff"
+          rippleIntensity={0.04}
+          gridSize={6}
+          gridThickness={12}
+          fadeDistance={1.8}
+          vignetteStrength={2.5}
+          glowIntensity={0.08}
+          opacity={0.25}
+          mouseInteraction={true}
+          mouseInteractionRadius={1.2}
+        />
+      </div>
+
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center justify-center gap-8 px-6 pt-24 pb-12 lg:grid lg:min-h-screen lg:grid-cols-5 lg:items-center lg:gap-12 lg:pt-0 lg:pb-0">
         {/* ── Left column: text ── */}
         <div className="w-full text-center lg:col-span-3 lg:text-left mb-8 lg:mb-0">
