@@ -86,7 +86,7 @@ export default function InterestSection() {
   const currentIndexRef = useRef(0);
   const sectionRef    = useRef<HTMLElement>(null);
   const cooldown      = useRef(false);
-  const cooldownTimer = useRef<ReturnType<typeof setTimeout>>();
+  const cooldownTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -114,7 +114,7 @@ export default function InterestSection() {
     if (cooldown.current) return;
     cooldown.current = true;
     setCurrentIndex(prev => (prev + dir + items.length) % items.length);
-    clearTimeout(cooldownTimer.current);
+    if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
     cooldownTimer.current = setTimeout(() => { cooldown.current = false; }, 500);
   };
 
@@ -177,7 +177,7 @@ export default function InterestSection() {
       el.removeEventListener("wheel", onWheel);
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchend", onTouchEnd);
-      clearTimeout(cooldownTimer.current);
+      if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
     };
   }, [isInFocus]);
 
