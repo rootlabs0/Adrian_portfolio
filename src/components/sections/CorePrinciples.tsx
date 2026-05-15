@@ -23,22 +23,22 @@ type Block = {
 /* Blocks are ordered bottom → top. The stagger naturally makes the
    bottom block land first, then each one falls on top of it. */
 const BLOCKS: Block[] = [
-  { label: "Quality",   color: "#6fa3f5", bottom: "2%",  left: "10%", rotate: 0 },
-  { label: "Speed",     color: "#8ab8ff", bottom: "15%", left: "17%", rotate: 0 },
-  { label: "Clarity",   color: "#a1c5ff", bottom: "28%", left: "8%",  rotate: 0 },
-  { label: "Craft",     color: "#bcd4ff", bottom: "41%", left: "16%", rotate: 0 },
-  { label: "Ownership", color: "#c8daff", bottom: "54%", left: "12%", rotate: 0 },
+  { label: "Quality",    color: "#6fa3f5", bottom: "2%",  left: "10%", rotate: 0 },
+  { label: "Impact",     color: "#8ab8ff", bottom: "15%", left: "17%", rotate: 0 },
+  { label: "Creativity", color: "#a1c5ff", bottom: "28%", left: "8%",  rotate: 0 },
+  { label: "Uniqueness", color: "#bcd4ff", bottom: "41%", left: "16%", rotate: 0 },
+  { label: "Idea",       color: "#c8daff", bottom: "54%", left: "12%", rotate: 0 },
 ];
 
 /* Scatter targets per block when the pile is hovered.
    Each block flies in a unique direction — defying gravity.
    Values are relative to the block's resting position (y:0 / rotation:0). */
 const SCATTER = [
-  { x:  45, y: -70,  rotation:  8  }, // Quality   — drifts up-right
-  { x: -65, y: -120, rotation: -12 }, // Speed     — shoots up-left
-  { x:  75, y: -90,  rotation:  16 }, // Clarity   — flies up-right, tips
-  { x: -30, y: -155, rotation: -10 }, // Craft     — launches straight up-left
-  { x:  55, y: -190, rotation:  12 }, // Ownership — escapes to the top
+  { x:  45, y: -70,  rotation:  8  }, // Quality    — drifts up-right
+  { x: -65, y: -120, rotation: -12 }, // Impact     — shoots up-left
+  { x:  75, y: -90,  rotation:  16 }, // Creativity — flies up-right, tips
+  { x: -30, y: -155, rotation: -10 }, // Uniqueness — launches straight up-left
+  { x:  55, y: -190, rotation:  12 }, // Idea       — escapes to the top
 ];
 
 const PARTICLE_COUNT = 50;
@@ -220,7 +220,7 @@ export default function CorePrinciples() {
             ref={headingRef}
             aria-label="Core Principles"
             className="select-none font-extrabold leading-[0.85] tracking-tighter text-[clamp(4rem,12vw,9.5rem)]"
-            style={{ color: "rgba(237,237,237,0.06)" }}
+            style={{ color: "rgba(237,237,237,0.15)" }}
           >
             <span className="block">Core</span>
             <span className="block">Principles</span>
@@ -230,10 +230,7 @@ export default function CorePrinciples() {
             ref={bodyRef}
             className="mt-10 max-w-md text-base leading-[1.85] text-foreground/70"
           >
-            Every great project starts with a spark. I brainstorm, sketch,
-            and explore every creative direction before committing to a
-            path forward. The values on the right are the ones I refuse
-            to compromise on.
+            I believe in creating work that stands out. Every project needs quality execution, creative vision, and a unique perspective to make an impact. These are the core ideas that guide every decision I make.
           </p>
         </div>
 

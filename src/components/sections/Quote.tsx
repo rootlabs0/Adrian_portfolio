@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "motion/react";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, Fragment } from "react";
 
 export default function Quote() {
   const ref = useRef<HTMLElement>(null);
@@ -19,23 +19,18 @@ export default function Quote() {
         style={{ opacity, y }}
         className="mx-auto max-w-4xl px-6"
       >
-        <blockquote className="text-[clamp(1.5rem,4vw,3rem)] font-bold leading-[1.2] tracking-tight">
-          <span className="text-foreground/15">&ldquo;</span>
+        <blockquote className="text-center text-[clamp(3rem,8vw,6rem)] font-bold leading-[1.2] tracking-tight">
           <QuoteTypeIn />
         </blockquote>
-
-        <p className="mt-10 font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/25">
-          Shape the future, don't just predict it
-        </p>
       </motion.div>
     </section>
   );
 }
 
 const SEGMENTS = [
-  { text: "The best way to predict the future is to ", style: "text" },
-  { text: "create it", style: "accent" },
-  { text: ".", style: "text" },
+  { text: "The best way to", style: "text" },
+  { text: "predict the future is to ", style: "text" },
+  { text: "create it.", style: "accent" },
 ] as const;
 
 function QuoteTypeIn() {
@@ -70,6 +65,8 @@ function QuoteTypeIn() {
   }, [totalLength]);
 
   let charIndex = 0;
+  const accentSegmentIndex = SEGMENTS.findIndex(s => s.style === "accent");
+  
   return (
     <span ref={ref}>
       {SEGMENTS.map((seg, idx) => {
@@ -86,13 +83,35 @@ function QuoteTypeIn() {
           );
         });
         charIndex += seg.text.length;
-        return seg.style === "accent" ? (
+        
+        const content = seg.style === "accent" ? (
           <span key={idx} className="text-accent font-display italic">{chars}</span>
         ) : (
           <span key={idx}>{chars}</span>
         );
+        
+        // Add line break only before the first segment
+        if (idx === 0) {
+          return (
+            <Fragment key={idx}>
+              {content}
+              <br />
+            </Fragment>
+          );
+        }
+        
+        // Add line break before the accent segment
+        if (idx === accentSegmentIndex) {
+          return (
+            <Fragment key={idx}>
+              <br />
+              {content}
+            </Fragment>
+          );
+        }
+        
+        return content;
       })}
-      <span className="text-foreground/15" style={{ opacity: revealed >= totalLength ? 1 : 0, transition: "opacity 0.15s" }}>&rdquo;</span>
     </span>
   );
 }

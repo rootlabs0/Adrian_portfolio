@@ -1,10 +1,12 @@
 ﻿"use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "motion/react";
 import Image from "next/image";
+import FlowFieldBackground from "@/components/ui/FlowFieldBackground";
+import { LiquidGlassCard } from "@/components/ui/LiquidGlassCard";
 
-/* â”€â”€ Data â”€â”€ */
+/* ──── Data ──── */
 const items = [
   {
     label: "Creative Design",
@@ -36,129 +38,247 @@ const items = [
   },
 ];
 
+// ── Arc config ────────────────────────────────────────────────────────────────
+//
+//  The section is 650 px tall and overflow:hidden.
+//  The arc CENTRE is placed at  left:50%  bottom:-120px
+//  → that means y = 650 + 120 = 770 px from the container top.
+//
+//  RADIUS = 340 px   STEP = 72°
+//
+//  offset  angle   x (px from arc-centre)   y-in-container (px from top)
+//   0      90°      0                        770 − 340 = 430   ← visible
+//  ±1     18/162°  ±323                      770 − 105 = 665   ← near bottom edge
+//  ±2    −54/234°  ±200                      770 + 195 = 965   ← below fold, opacity 0
+//
+// ─────────────────────────────────────────────────────────────────────────────
+const RADIUS = 340; // px
+const STEP = 72;    // degrees between adjacent slots
+
+function getTransform(itemIdx: number, currentIdx: number) {
+  const n = items.length;
+  // shortest-path offset in [-n/2 … n/2]
+  let offset = ((itemIdx - currentIdx) % n + n) % n;
+  if (offset > n / 2) offset -= n;
+
+  const rad = ((90 - offset * STEP) * Math.PI) / 180;
+
+  // x/y are CSS-transform translations relative to the arc-centre div
+  const x = RADIUS * Math.cos(rad);   // positive = right
+  const y = -(RADIUS * Math.sin(rad)); // positive = DOWN in CSS → negative = up
+
+  const isCenter  = offset === 0;
+  const isVisible = Math.abs(offset) <= 1;
+
+  return {
+    x,
+    y,
+    scale:   isCenter ? 1 : 0.72,
+    opacity: isVisible ? 1 : 0,
+    zIndex:  isCenter ? 20 : 10,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 export default function InterestSection() {
-  const [active, setActive] = useState(0);
-  const [mobileOpen, setMobileOpen] = useState<number | null>(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isInFocus, setIsInFocus] = useState(false);
+  const currentIndexRef = useRef(0);
+  const sectionRef    = useRef<HTMLElement>(null);
+  const cooldown      = useRef(false);
+  const cooldownTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
+  // Detect when section is sufficiently visible in viewport
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Section is in focus when at least 60% is visible
+        setIsInFocus(entry.intersectionRatio >= 0.6);
+      },
+      { threshold: [0, 0.2, 0.4, 0.6, 0.8, 1] }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const advance = (dir: 1 | -1) => {
+    if (cooldown.current) return;
+    cooldown.current = true;
+    setCurrentIndex(prev => (prev + dir + items.length) % items.length);
+    clearTimeout(cooldownTimer.current);
+    cooldownTimer.current = setTimeout(() => { cooldown.current = false; }, 500);
+  };
+
+  // Use a native (non-passive) listener so e.preventDefault() actually works
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    let touchStart = 0;
+    let touchEnd = 0;
+
+    const onWheel = (e: WheelEvent) => {
+      // Only capture scroll if section is in focus and not at boundaries
+      if (!isInFocus) return;
+      
+      const isAtStart = currentIndexRef.current <= 0;
+      const isAtEnd = currentIndexRef.current >= items.length - 1;
+      const isMovingForward = e.deltaY > 0;
+      
+      if ((isMovingForward && isAtEnd) || (!isMovingForward && isAtStart)) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      advance(e.deltaY > 0 ? 1 : -1);
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      touchStart = e.changedTouches[0].screenX;
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      touchEnd = e.changedTouches[0].screenX;
+      handleSwipe();
+    };
+
+    const handleSwipe = () => {
+      if (!isInFocus) return;
+      
+      const difference = touchStart - touchEnd;
+      const threshold = 50;
+
+      if (Math.abs(difference) > threshold) {
+        if (difference > 0) {
+          // Swiped left → advance forward
+          const isAtEnd = currentIndexRef.current >= items.length - 1;
+          if (!isAtEnd) advance(1);
+        } else {
+          // Swiped right → advance backward
+          const isAtStart = currentIndexRef.current <= 0;
+          if (!isAtStart) advance(-1);
+        }
+      }
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchend", onTouchEnd);
+      clearTimeout(cooldownTimer.current);
+    };
+  }, [isInFocus]);
 
   return (
-    <section id="interests" className="py-24 sm:py-32 lg:py-40">
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, margin: "-80px" }}
-        transition={{ duration: 0.8 }}
-        className="mx-auto w-full max-w-5xl px-6"
+    <section
+      ref={sectionRef}
+      id="interests"
+      className="relative w-full overflow-hidden"
+      style={{ height: "650px" }}
+    >
+      {/* ── Background ── */}
+      <FlowFieldBackground color="#818cf8" trailOpacity={0.08} particleCount={400} speed={0.6} />
+
+      {/* ── Fade overlays ── */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black via-black/50 to-transparent pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent pointer-events-none z-0" />
+
+      {/* ── Title ── */}
+      <div className="absolute top-14 inset-x-0 text-center z-30 pointer-events-none">
+        <h2 className="text-4xl lg:text-5xl font-bold tracking-tight mb-3">
+          Skills &amp; Interests
+        </h2>
+        <p className="text-foreground/60 text-base">Scroll to explore</p>
+      </div>
+
+      {/* ── SVG arc guide line ──
+          ViewBox matches a typical 800 px-wide container (section is full-width).
+          Arc centre in viewBox coords: (400, 770).  Radius: 340.
+
+          Left slot  (offset −1, angle 162°):
+            x = 400 + 340·cos(162°) ≈  77
+            y = 770 − 340·sin(162°) ≈ 665   (note: minus because SVG y grows down
+                                              but sin(162°)>0 means the point is ABOVE centre)
+          Right slot (offset +1, angle 18°):
+            x = 400 + 340·cos(18°) ≈ 723,  y ≈ 665
+
+          sweep-flag=1 (clockwise in SVG) draws the UPPER arc. ✓
+      ── */}
+      <svg
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        viewBox="0 0 800 650"
+        preserveAspectRatio="xMidYMid slice"
+        style={{ zIndex: 5 }}
       >
-        {/* Section label */}
-        <p data-fade-out className="mb-16 sm:mb-20 text-[11px] tracking-[0.25em] uppercase text-foreground/30" style={{ fontFamily: "var(--font-inter)" }}>
-          Interests &amp; Skills
-        </p>
+        <path
+          d="M 77 665 A 340 340 0 0 1 723 665"
+          stroke="rgba(255,255,255,0.18)"
+          strokeWidth="1.5"
+          strokeDasharray="6 4"
+          fill="none"
+        />
+      </svg>
 
-        {/* â”€â”€ DESKTOP: Editorial two-column layout â”€â”€ */}
-        <div className="hidden sm:grid grid-cols-2 gap-16 lg:gap-24 items-start">
+      {/* ── Arc pivot ──
+          Positioned at the mathematical arc centre.
+          Cards are children whose CSS-transform x/y values move them to
+          the correct point on the circle. The inner static div centres
+          each card around that point without interfering with Framer Motion.
+      ── */}
+      <div
+        style={{
+          position: "absolute",
+          left: "50%",
+          bottom: "-120px",
+          width: 0,
+          height: 0,
+          zIndex: 10,
+        }}
+      >
+        {items.map((item, i) => {
+          const tf = getTransform(i, currentIndex);
+          const isCenter = i === currentIndex;
 
-          {/* Left: numbered list */}
-          <div className="flex flex-col divide-y divide-foreground/[0.06]">
-            {items.map((item, i) => (
-              <button
-                key={item.label}
-                onClick={() => setActive(i)}
-                onMouseEnter={() => setActive(i)}
-                className="group flex items-center gap-6 py-7 text-left"
-              >
-                <span className="w-7 font-mono text-[11px] tracking-[0.2em] text-foreground/20 flex-shrink-0 group-hover:text-foreground/40 transition-colors">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-
+          return (
+            // Outer motion.div: moves the card's centre-point to (tf.x, tf.y)
+            // relative to the arc pivot. x/y are pure translations — transform-
+            // origin has no effect on them.
+            <motion.div
+              key={i}
+              initial={false}
+              animate={{ x: tf.x, y: tf.y }}
+              transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+              style={{ position: "absolute", left: 0, top: 0, zIndex: tf.zIndex }}
+            >
+              {/*
+                Static centering wrapper.
+                This is NOT a motion element, so Framer Motion never touches its
+                transform. translate(-50%, -50%) centres the card around the point
+                (tf.x, tf.y) from the arc pivot.
+              */}
+              <div style={{ transform: "translate(-50%, -50%)" }}>
+                {/* Inner motion.div: handles scale + fade from the card's own centre */}
                 <motion.div
-                  className="h-px bg-foreground/30 flex-shrink-0"
-                  animate={{ width: active === i ? 20 : 0, opacity: active === i ? 1 : 0 }}
-                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                />
-
-                <motion.span
-                  animate={{ color: active === i ? "rgba(237,237,237,1)" : "rgba(237,237,237,0.25)" }}
-                  transition={{ duration: 0.3 }}
-                  className="text-xl lg:text-2xl font-bold tracking-tight"
+                  initial={false}
+                  animate={{ scale: tf.scale, opacity: tf.opacity }}
+                  transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  {item.label}
-                </motion.span>
-              </button>
-            ))}
-          </div>
-
-          {/* Right: spotlight panel */}
-          <div className="sticky top-1/3">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={active}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -14 }}
-                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="rounded-3xl border border-foreground/[0.08] bg-canvas-light p-10"
-              >
-                <div className="w-20 h-20 rounded-2xl bg-canvas flex items-center justify-center mb-8">
-                  <Image
-                    src={items[active].icon}
-                    alt={items[active].label}
-                    width={52}
-                    height={52}
-                    className={`object-contain w-14 h-14 ${items[active].iconClass}`}
-                  />
-                </div>
-                <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/30 mb-3">
-                  {items[active].tag}
-                </p>
-                <h3 className="text-3xl font-bold tracking-tight mb-5">
-                  {items[active].label}
-                </h3>
-                <p className="text-base leading-[1.85] text-foreground/50">
-                  {items[active].note}
-                </p>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
-
-        {/* â”€â”€ MOBILE: Accordion â”€â”€ */}
-        <div className="flex flex-col sm:hidden divide-y divide-foreground/[0.06]">
-          {items.map((item, i) => {
-            const isOpen = mobileOpen === i;
-            return (
-              <div key={item.label}>
-                <button
-                  onClick={() => setMobileOpen(isOpen ? null : i)}
-                  className="w-full flex items-center justify-between py-6 text-left"
-                >
-                  <div className="flex items-center gap-5">
-                    <span className="font-mono text-[10px] tracking-[0.2em] text-foreground/20 w-6 flex-shrink-0">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span className={`text-xl font-bold tracking-tight transition-colors ${isOpen ? "text-foreground" : "text-foreground/40"}`}>
-                      {item.label}
-                    </span>
-                  </div>
-                  <motion.span
-                    animate={{ rotate: isOpen ? 45 : 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="text-foreground/30 text-2xl leading-none flex-shrink-0 ml-4 font-light"
-                  >
-                    +
-                  </motion.span>
-                </button>
-
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                      className="overflow-hidden"
-                    >
-                      <div className="pb-7 flex gap-5 items-start">
-                        <div className="rounded-xl bg-canvas border border-foreground/[0.07] p-4 flex-shrink-0">
+                  {isCenter ? (
+                    <LiquidGlassCard className="rounded-3xl p-8 w-72">
+                      <div className="flex flex-col items-center">
+                        <div className="w-16 h-16 rounded-2xl bg-canvas flex items-center justify-center mb-6">
                           <Image
                             src={item.icon}
                             alt={item.label}
@@ -167,23 +287,44 @@ export default function InterestSection() {
                             className={`object-contain w-10 h-10 ${item.iconClass}`}
                           />
                         </div>
-                        <div>
-                          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/30 mb-2">
-                            {item.tag}
-                          </p>
-                          <p className="text-sm leading-[1.85] text-foreground/50">
-                            {item.note}
-                          </p>
-                        </div>
+                        <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/30 mb-2 text-center">
+                          {item.tag}
+                        </p>
+                        <h3 className="text-2xl font-bold tracking-tight mb-4 text-center">
+                          {item.label}
+                        </h3>
+                        <p className="text-sm leading-[1.85] text-foreground/50 text-center">
+                          {item.note}
+                        </p>
                       </div>
-                    </motion.div>
+                    </LiquidGlassCard>
+                  ) : (
+                    <LiquidGlassCard className="rounded-2xl p-5 w-52">
+                      <div className="flex flex-col items-center">
+                        <div className="w-12 h-12 rounded-xl bg-canvas flex items-center justify-center mb-3">
+                          <Image
+                            src={item.icon}
+                            alt={item.label}
+                            width={32}
+                            height={32}
+                            className={`object-contain w-8 h-8 ${item.iconClass}`}
+                          />
+                        </div>
+                        <p className="font-mono text-[8px] tracking-[0.2em] uppercase text-foreground/30 mb-1 text-center">
+                          {item.tag}
+                        </p>
+                        <h4 className="text-base font-bold tracking-tight text-center">
+                          {item.label}
+                        </h4>
+                      </div>
+                    </LiquidGlassCard>
                   )}
-                </AnimatePresence>
+                </motion.div>
               </div>
-            );
-          })}
-        </div>
-      </motion.div>
+            </motion.div>
+          );
+        })}
+      </div>
     </section>
   );
 }

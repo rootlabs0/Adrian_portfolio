@@ -2,9 +2,50 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { motion, useScroll, useTransform, type MotionValue } from "motion/react";
+import PillButton from "@/components/ui/PillButton";
 
 const Hyperspeed = dynamic(() => import("@/components/ui/Hyperspeed"), { ssr: false });
+
+/* ── Catmull-Rom blob path ── */
+function blobPath(cx: number, cy: number, baseR: number, amp: number, bumps: number, segs: number) {
+  const pts: [number, number][] = [];
+  for (let i = 0; i < segs; i++) {
+    const a = (i / segs) * Math.PI * 2;
+    const r = baseR + amp * Math.cos(bumps * a);
+    pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+  }
+  const n = pts.length;
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+    d += `C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)},${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)},${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d + "Z";
+}
+
+/* ── Pixel chunk reveal overlay (plays once on mount) ── */
+function seededVal(seed: number) { const n = Math.sin(seed * 127.1) * 43758.5453; return n - Math.floor(n); }
+function PixelReveal() {
+  const cols = 10, rows = 7;
+  const cells = useMemo(() => {
+    const arr: { key: string; delay: number }[] = [];
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        arr.push({ key: `${r}-${c}`, delay: seededVal(r * 311.7 + c * 127.1) * 0.65 + 0.05 });
+    return arr;
+  }, []);
+  return (
+    <div className="absolute inset-0 z-40 grid pointer-events-none"
+      style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
+      {cells.map(({ key, delay }) => (
+        <motion.div key={key} className="bg-black" initial={{ opacity: 1 }} animate={{ opacity: 0 }}
+          transition={{ duration: 0.3, delay, ease: "easeOut" }} />
+      ))}
+    </div>
+  );
+}
 
 const SLIDES = [
   {
@@ -29,13 +70,15 @@ const SLIDES = [
   },
 ];
 
-const HEIGHT_VH = 1200;
+const HEIGHT_VH = 1600;
 
-// Shared layout constants — used by both Slide animations and snap logic
-const INTRO_SLOT = 1 / (SLIDES.length + 1); // 0.20
-const SLIDE_SPACING = 0.22; // progress gap between slide starts
-const SLIDE_WINDOW = 0.25;  // must be < SLIDE_SPACING / 0.67 so readable zones never overlap
-const SLIDE_FADE = 0.05;    // fade in/out duration
+// Hero occupies 0 → HERO_SLOT, then intro title, then slides
+const HERO_SLOT    = 0.15;   // hero panel
+const INTRO_SLOT   = 0.15;   // intro title ("The journey so far")
+const SLIDE_START  = HERO_SLOT + INTRO_SLOT; // 0.30 — first slide starts here
+const SLIDE_SPACING = 0.20;
+const SLIDE_WINDOW  = 0.22;
+const SLIDE_FADE    = 0.05;
 
 export default function AboutMe() {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -50,21 +93,24 @@ export default function AboutMe() {
   // Calculate dynamically to account for end clamping (especially on last slide)
   const snapPoints = useMemo(() => {
     const points = [];
-    
+
+    // Hero readable zone
+    points.push(HERO_SLOT * 0.5);
+
     // Intro title readable zone
-    const introReadableStart = INTRO_SLOT * 0.15;
-    const introReadableEnd = INTRO_SLOT * 0.82;
+    const introReadableStart = HERO_SLOT + INTRO_SLOT * 0.15;
+    const introReadableEnd   = HERO_SLOT + INTRO_SLOT * 0.82;
     points.push((introReadableStart + introReadableEnd) / 2);
-    
+
     // Slides readable zones
     SLIDES.forEach((_, i) => {
-      const start = INTRO_SLOT + i * SLIDE_SPACING;
+      const start = SLIDE_START + i * SLIDE_SPACING;
       const end = Math.min(1, start + SLIDE_WINDOW);
       const readableStart = start + SLIDE_WINDOW * 0.15;
-      const readableEnd = end - SLIDE_WINDOW * 0.18;
+      const readableEnd   = end   - SLIDE_WINDOW * 0.18;
       points.push((readableStart + readableEnd) / 2);
     });
-    
+
     return points;
   }, []);
 
@@ -167,6 +213,9 @@ export default function AboutMe() {
           background: "#000",
         }}
       >
+        {/* Pixel reveal overlay */}
+        <PixelReveal />
+
         {/* Hyperspeed canvas */}
         <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
           <Hyperspeed effectOptions={hyperspeedOptions} />
@@ -185,6 +234,9 @@ export default function AboutMe() {
           }}
         />
 
+        {/* Hero panel — name, avatar, CTAs */}
+        <HeroPanel progress={scrollYProgress} />
+
         {/* Section intro title */}
         <IntroTitle progress={scrollYProgress} />
 
@@ -192,23 +244,72 @@ export default function AboutMe() {
         {SLIDES.map((slide, i) => (
           <Slide key={slide.age} index={i} total={SLIDES.length} progress={scrollYProgress} slide={slide} />
         ))}
-
-        {/* Progress dots */}
-        <ProgressDots progress={scrollYProgress} total={SLIDES.length} />
       </div>
     </section>
   );
 }
 
-function IntroTitle({ progress }: { progress: MotionValue<number> }) {
-  // Visible 0 → ~0.18 of total scroll, fades out before slide 1 starts at 0.20
-  // Same nonlinear easing as slides: slow in readable zone, fast exit
-  const scale = useTransform(
-    progress,
-    [0, INTRO_SLOT * 0.15, INTRO_SLOT * 0.82, INTRO_SLOT],
+function HeroPanel({ progress }: { progress: MotionValue<number> }) {
+  const opacity = useTransform(progress,
+    [0, SLIDE_FADE, HERO_SLOT - SLIDE_FADE, HERO_SLOT],
+    [0, 1, 1, 0]
+  );
+  const scale = useTransform(progress,
+    [0, HERO_SLOT * 0.15, HERO_SLOT * 0.82, HERO_SLOT],
     [0.25, 0.85, 1.5, 8]
   );
-  const opacity = useTransform(progress, [0, SLIDE_FADE, INTRO_SLOT - SLIDE_FADE, INTRO_SLOT], [0, 1, 1, 0]);
+
+  return (
+    <motion.div
+      style={{
+        opacity,
+        scale,
+        position: "absolute",
+        inset: 0,
+        zIndex: 2,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        pointerEvents: "none",
+        transformOrigin: "center center",
+        willChange: "transform, opacity",
+        padding: "0 1.5rem",
+      }}
+    >
+      <h1 style={{
+        fontSize: "clamp(3.5rem, 10vw, 8rem)",
+        fontWeight: 800,
+        lineHeight: 0.92,
+        letterSpacing: "-0.03em",
+        margin: 0,
+      }}>
+        <span style={{ display: "block", color: "#fff" }}>Adrian</span>
+        <span style={{
+          display: "block",
+          color: "var(--accent, #a1c5ff)",
+          fontStyle: "italic",
+        }}>Edwards</span>
+      </h1>
+      <div style={{ marginTop: "2.5rem", display: "flex", gap: "1rem", pointerEvents: "auto" }}>
+        <PillButton href="#projects" variant="gradient">See my work</PillButton>
+        <PillButton href="#contact" variant="ghost">Say hello</PillButton>
+      </div>
+    </motion.div>
+  );
+}
+
+function IntroTitle({ progress }: { progress: MotionValue<number> }) {
+  const scale = useTransform(
+    progress,
+    [HERO_SLOT, HERO_SLOT + INTRO_SLOT * 0.15, HERO_SLOT + INTRO_SLOT * 0.82, HERO_SLOT + INTRO_SLOT],
+    [0.25, 0.85, 1.5, 8]
+  );
+  const opacity = useTransform(progress,
+    [HERO_SLOT, HERO_SLOT + SLIDE_FADE, HERO_SLOT + INTRO_SLOT - SLIDE_FADE, HERO_SLOT + INTRO_SLOT],
+    [0, 1, 1, 0]
+  );
   return (
     <motion.div
       style={{
@@ -268,7 +369,7 @@ function Slide({
   progress: MotionValue<number>;
   slide: (typeof SLIDES)[number];
 }) {
-  const start = INTRO_SLOT + index * SLIDE_SPACING;
+  const start = SLIDE_START + index * SLIDE_SPACING;
   const end = Math.min(1, start + SLIDE_WINDOW);
 
   // Nonlinear scale: fast approach, SLOW readable zone, fast exit past camera
