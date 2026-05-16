@@ -1,14 +1,17 @@
+'use client';
+
 /**
  * Get the correct image path with basePath prefix for production static export
- * In production, images need the basePath prefix since they're in /public
- * In development, images are served directly without basePath
+ * Detects basePath from the current URL pathname
  */
 export function getImagePath(path: string): string {
-  // Only add basePath in production (static export for GitHub Pages)
-  // Dev server serves images directly from /public without basePath prefix
-  const isProduction = process.env.NODE_ENV === "production";
+  if (typeof window === "undefined") {
+    return path;  // SSR - can't access window
+  }
   
-  if (isProduction) {
+  // Check if current URL contains /Adrian_portfolio
+  const currentPath = window.location.pathname;
+  if (currentPath.includes("/Adrian_portfolio")) {
     const basePath = "/Adrian_portfolio";
     if (!path.startsWith(basePath) && path.startsWith("/")) {
       return basePath + path;
