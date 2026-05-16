@@ -9,6 +9,7 @@ import {
   useSpring,
 } from "motion/react";
 import Image from "next/image";
+import { getImagePath } from "@/lib/image-path";
 import PillButton from "@/components/ui/PillButton";
 
 /* ═══════════════════════════════════════════════════
@@ -454,7 +455,7 @@ export default function RLBusinessCard() {
                   <div className="flex items-center gap-3">
                     <div className="shrink-0 h-12 w-12 overflow-hidden rounded-xl shadow-md">
                       <Image
-                        src="/rootlabs-favicon.webp"
+                        src={getImagePath("/rootlabs-favicon.webp")}
                         alt="Root Labs"
                         width={48}
                         height={48}
@@ -476,7 +477,7 @@ export default function RLBusinessCard() {
                     <div className="relative mx-auto w-fit rounded-xl p-[3px] bg-gray-200/80">
                       <div className="h-[260px] w-[200px] overflow-hidden rounded-[10px]">
                         <Image
-                          src="/Adrian_avatar.png"
+                          src={getImagePath("/Adrian_avatar.png")}
                           alt="Adrian Edwards"
                           width={800}
                           height={1200}
@@ -506,7 +507,7 @@ export default function RLBusinessCard() {
                   <div className="relative rounded-xl p-[3px] bg-gray-200/80 shadow-lg">
                     <div className="h-[220px] w-[170px] overflow-hidden rounded-[10px]">
                       <Image
-                        src="/Adrian_avatar.png"
+                        src={getImagePath("/Adrian_avatar.png")}
                         alt="Adrian Edwards"
                         width={850}
                         height={1200}

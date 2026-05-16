@@ -6,6 +6,7 @@ import RippleGrid from "@/components/ui/RippleGrid";
 import { useMouseParallax } from "@/hooks/useMouseParallax";
 import Image from "next/image";
 import { useMemo } from "react";
+import { getImagePath } from "@/lib/image-path";
 
 /* ── Catmull-Rom → cubic Bézier closed-path generator ── */
 function blobPath(
@@ -223,7 +224,7 @@ export default function Hero() {
 
           {/* Avatar */}
           <Image
-            src="/Adrian_avatar.png"
+            src={getImagePath("/Adrian_avatar.png")}
             alt="Adrian Edwards"
             width={320}
             height={320}

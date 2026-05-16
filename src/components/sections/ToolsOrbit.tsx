@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import Image from "next/image";
+import { getImagePath } from "@/lib/image-path";
 
 const TOOLS = [
   { name: "GitHub",   src: "/logos/logo1.webp" },
@@ -126,7 +127,7 @@ export default function ToolsOrbit() {
                   }}
                 >
                   <Image
-                    src={tool.src}
+                    src={getImagePath(tool.src)}
                     alt={tool.name}
                     width={44}
                     height={44}

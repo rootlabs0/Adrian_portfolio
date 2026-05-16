@@ -6,6 +6,7 @@ import PillButton from "@/components/ui/PillButton";
 import Image from "next/image";
 import RLBusinessCard from "@/components/ui/RLBusinessCard";
 import { ContainerScroll } from "@/components/ui/ContainerScrollAnimation";
+import { getImagePath } from "@/lib/image-path";
 
 /* Deterministic pseudo-random */
 function seeded(seed: number): number {
@@ -178,7 +179,7 @@ function TeamsterSection() {
             <div className="flex items-center gap-3">
               <div className="shrink-0 h-10 w-10 overflow-hidden rounded-lg">
                 <Image
-                  src="/favicon-circle.webp"
+                  src={getImagePath("/favicon-circle.webp")}
                   alt="TeamsterX"
                   width={40}
                   height={40}
@@ -246,7 +247,7 @@ function TeamsterSection() {
               }}
             >
               <Image
-                src="/teamster2.webp"
+                src={getImagePath("/teamster2.webp")}
                 alt="TeamsterX dashboard"
                 fill
                 sizes="240px"
@@ -323,7 +324,7 @@ function TeamsterSection() {
               }}
             >
               <Image
-                src="/teamster.webp"
+                src={getImagePath("/teamster.webp")}
                 alt="TeamsterX dashboard"
                 fill
                 sizes="280px"
@@ -475,7 +476,7 @@ function SquareSharePattern() {
         }}
       >
         <Image
-          src="/squareshare2.webp"
+          src={getImagePath("/squareshare2.webp")}
           alt="SquareShare screenshot 2"
           fill
           sizes="200px"
@@ -499,7 +500,7 @@ function SquareSharePattern() {
         }}
       >
         <Image
-          src="/squareshare1.webp"
+          src={getImagePath("/squareshare1.webp")}
           alt="SquareShare screenshot 1"
           fill
           sizes="240px"

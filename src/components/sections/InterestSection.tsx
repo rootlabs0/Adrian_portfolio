@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import Image from "next/image";
 import FlowFieldBackground from "@/components/ui/FlowFieldBackground";
 import { LiquidGlassCard } from "@/components/ui/LiquidGlassCard";
+import { getImagePath } from "@/lib/image-path";
 
 /* ──── Data ──── */
 const items = [
@@ -200,7 +201,6 @@ export default function InterestSection() {
         <h2 className="text-4xl lg:text-5xl font-bold tracking-tight mb-3">
           Skills &amp; Interests
         </h2>
-        <p className="text-foreground/60 text-base">Scroll to explore</p>
       </div>
 
       {/* ── SVG arc guide line ──
@@ -280,7 +280,7 @@ export default function InterestSection() {
                       <div className="flex flex-col items-center">
                         <div className="w-16 h-16 rounded-2xl bg-canvas flex items-center justify-center mb-6">
                           <Image
-                            src={item.icon}
+                            src={getImagePath(item.icon)}
                             alt={item.label}
                             width={40}
                             height={40}
@@ -303,7 +303,7 @@ export default function InterestSection() {
                       <div className="flex flex-col items-center">
                         <div className="w-12 h-12 rounded-xl bg-canvas flex items-center justify-center mb-3">
                           <Image
-                            src={item.icon}
+                            src={getImagePath(item.icon)}
                             alt={item.label}
                             width={32}
                             height={32}

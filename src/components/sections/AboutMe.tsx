@@ -76,8 +76,9 @@ const HEIGHT_VH = 1600;
 const HERO_SLOT    = 0.15;   // hero panel
 const INTRO_SLOT   = 0.15;   // intro title ("The journey so far")
 const SLIDE_START  = HERO_SLOT + INTRO_SLOT; // 0.30 — first slide starts here
-const SLIDE_SPACING = 0.20;
-const SLIDE_WINDOW  = 0.22;
+const SLIDE_SPACING = 0.14;
+const SLIDE_WINDOW  = 0.17;
+const OUTRO_START   = 0.88;
 const SLIDE_FADE    = 0.05;
 
 export default function AboutMe() {
@@ -110,6 +111,9 @@ export default function AboutMe() {
       const readableEnd   = end   - SLIDE_WINDOW * 0.18;
       points.push((readableStart + readableEnd) / 2);
     });
+
+    // Outro snap — fully faded in
+    points.push(OUTRO_START + SLIDE_FADE + (1.0 - OUTRO_START - SLIDE_FADE) * 0.4);
 
     return points;
   }, []);
@@ -160,6 +164,8 @@ export default function AboutMe() {
       clearTimeout(timer);
     };
   }, [snapPoints]);
+
+  const hyperspeedOpacity = useTransform(scrollYProgress, [0, 0.82, 0.96], [1, 1, 0]);
 
   const hyperspeedOptions = useMemo(
     () => ({
@@ -217,9 +223,9 @@ export default function AboutMe() {
         <PixelReveal />
 
         {/* Hyperspeed canvas */}
-        <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+        <motion.div style={{ position: "absolute", inset: 0, zIndex: 0, opacity: hyperspeedOpacity }}>
           <Hyperspeed effectOptions={hyperspeedOptions} />
-        </div>
+        </motion.div>
 
         {/* Dim overlay for text legibility */}
         <div
@@ -244,6 +250,9 @@ export default function AboutMe() {
         {SLIDES.map((slide, i) => (
           <Slide key={slide.age} index={i} total={SLIDES.length} progress={scrollYProgress} slide={slide} />
         ))}
+
+        {/* Outro — bridges to project section */}
+        <OutroTitle progress={scrollYProgress} />
       </div>
     </section>
   );
@@ -354,6 +363,64 @@ function IntroTitle({ progress }: { progress: MotionValue<number> }) {
         The journey<br />so far
       </h2>
 
+    </motion.div>
+  );
+}
+
+function OutroTitle({ progress }: { progress: MotionValue<number> }) {
+  const scale = useTransform(
+    progress,
+    [OUTRO_START, OUTRO_START + 0.018, OUTRO_START + 0.098, 1.0],
+    [0.25, 0.85, 1.0, 1.0]
+  );
+  const opacity = useTransform(
+    progress,
+    [OUTRO_START, OUTRO_START + SLIDE_FADE, 1.0],
+    [0, 1, 1]
+  );
+  return (
+    <motion.div
+      style={{
+        opacity,
+        scale,
+        position: "absolute",
+        inset: 0,
+        zIndex: 2,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        pointerEvents: "none",
+        padding: "0 1.5rem",
+        transformOrigin: "center center",
+        willChange: "transform, opacity",
+      }}
+    >
+      <p
+        style={{
+          fontFamily: "var(--font-mono, ui-monospace)",
+          fontSize: "0.85rem",
+          letterSpacing: "0.3em",
+          textTransform: "uppercase",
+          color: "var(--accent, #a1c5ff)",
+          marginBottom: "1.25rem",
+        }}
+      >
+        What I&apos;ve built
+      </p>
+      <h2
+        style={{
+          color: "#fff",
+          fontSize: "clamp(2.5rem, 7vw, 5.5rem)",
+          fontWeight: 800,
+          lineHeight: 1.05,
+          letterSpacing: "-0.03em",
+          margin: 0,
+        }}
+      >
+        My best<br />projects
+      </h2>
     </motion.div>
   );
 }
