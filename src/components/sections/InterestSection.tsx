@@ -101,8 +101,8 @@ export default function InterestSection() {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // Section is in focus when at least 60% is visible
-        setIsInFocus(entry.intersectionRatio >= 0.6);
+        // Section is in focus when at least 40% is visible (less aggressive than 60%)
+        setIsInFocus(entry.intersectionRatio >= 0.4);
       },
       { threshold: [0, 0.2, 0.4, 0.6, 0.8, 1] }
     );
@@ -116,27 +116,22 @@ export default function InterestSection() {
     cooldown.current = true;
     setCurrentIndex(prev => (prev + dir + items.length) % items.length);
     if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
-    cooldownTimer.current = setTimeout(() => { cooldown.current = false; }, 500);
+    // Set cooldown with a max safety timeout to prevent getting stuck
+    cooldownTimer.current = setTimeout(() => { 
+      cooldown.current = false; 
+    }, 500);
   };
 
   // Use a native (non-passive) listener so e.preventDefault() actually works
   useEffect(() => {
     const el = sectionRef.current;
-    if (!el) return;
+    if (!el || !isInFocus) return;
 
     let touchStart = 0;
     let touchEnd = 0;
 
     const onWheel = (e: WheelEvent) => {
-      // Only capture scroll if section is in focus and not at boundaries
-      if (!isInFocus) return;
-      
-      const isAtStart = currentIndexRef.current <= 0;
-      const isAtEnd = currentIndexRef.current >= items.length - 1;
-      const isMovingForward = e.deltaY > 0;
-      
-      if ((isMovingForward && isAtEnd) || (!isMovingForward && isAtStart)) return;
-      
+      // Only prevent default and advance if focused
       e.preventDefault();
       e.stopPropagation();
       advance(e.deltaY > 0 ? 1 : -1);
@@ -148,24 +143,16 @@ export default function InterestSection() {
 
     const onTouchEnd = (e: TouchEvent) => {
       touchEnd = e.changedTouches[0].screenX;
-      handleSwipe();
-    };
-
-    const handleSwipe = () => {
-      if (!isInFocus) return;
-      
       const difference = touchStart - touchEnd;
       const threshold = 50;
 
       if (Math.abs(difference) > threshold) {
         if (difference > 0) {
           // Swiped left → advance forward
-          const isAtEnd = currentIndexRef.current >= items.length - 1;
-          if (!isAtEnd) advance(1);
+          advance(1);
         } else {
           // Swiped right → advance backward
-          const isAtStart = currentIndexRef.current <= 0;
-          if (!isAtStart) advance(-1);
+          advance(-1);
         }
       }
     };
@@ -178,7 +165,6 @@ export default function InterestSection() {
       el.removeEventListener("wheel", onWheel);
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchend", onTouchEnd);
-      if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
     };
   }, [isInFocus]);
 
