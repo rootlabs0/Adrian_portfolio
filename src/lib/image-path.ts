@@ -1,10 +1,19 @@
 /**
- * Get the correct image path with basePath prefix on dev (Next.js has a bug with basePath on dev server)
- * On prod (static export), Next.js handles this automatically
+ * Get the correct image path with basePath prefix for production static export
+ * In production, images need the basePath prefix since they're in /public
+ * In development, images are served directly without basePath
  */
 export function getImagePath(path: string): string {
-  // During dev: just return the path as-is, dev server serves from /public
-  // During production static export: Next.js applies basePath automatically
-  // So we don't need to do anything
+  // Only add basePath in production (static export for GitHub Pages)
+  // Dev server serves images directly from /public without basePath prefix
+  const isProduction = process.env.NODE_ENV === "production";
+  
+  if (isProduction) {
+    const basePath = "/Adrian_portfolio";
+    if (!path.startsWith(basePath) && path.startsWith("/")) {
+      return basePath + path;
+    }
+  }
+  
   return path;
 }
